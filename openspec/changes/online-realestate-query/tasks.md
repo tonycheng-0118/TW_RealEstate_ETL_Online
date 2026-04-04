@@ -8,7 +8,7 @@
 
 ## 2. GitHub Repository 與 Next.js 初始化
 
-- [ ] 2.1 在 GitHub 建立 TW_RealEstate_ETL_Online repository
+- [x] 2.1 在 GitHub 建立 TW_RealEstate_ETL_Online repository
 - [ ] 2.2 用 `npx create-next-app@latest` 初始化 Next.js 專案（App Router、TypeScript、Tailwind CSS、ESLint）
 - [ ] 2.3 安裝 shadcn/ui（`npx shadcn@latest init`）並加入所需元件（Button、Input、Card、ScrollArea）
 - [ ] 2.4 建立 `.env.local` 並設定環境變數（SUPABASE_DB_URL、QWEN_API_KEY、NEXT_PUBLIC_SITE_URL）
