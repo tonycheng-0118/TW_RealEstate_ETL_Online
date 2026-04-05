@@ -1,8 +1,11 @@
 # 台灣實價登錄 AI 查詢系統
 
 [![CI](https://github.com/tonycheng-0118/TW_RealEstate_ETL_Online/actions/workflows/ci.yml/badge.svg)](https://github.com/tonycheng-0118/TW_RealEstate_ETL_Online/actions/workflows/ci.yml)
+[![Deploy](https://img.shields.io/badge/demo-tw--realestate--query.vercel.app-blue)](https://tw-realestate-query.vercel.app)
 
 用自然語言查詢台灣不動產實價登錄資料。輸入「大安區近一年兩房公寓均價」，AI 幫你查。
+
+**線上體驗：https://tw-realestate-query.vercel.app**
 
 ## 架構
 
