@@ -8,7 +8,6 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { QUICK_QUERIES } from "@/app/lib/prompts";
 
@@ -21,6 +20,8 @@ export default function ChatBox() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<string[]>([]); // Past user prompts
+  const [historyIndex, setHistoryIndex] = useState(-1); // -1 = not browsing history
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -35,9 +36,11 @@ export default function ChatBox() {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
-    // Add user message to chat
+    // Add user message to chat and history
     const userMsg: Message = { role: "user", content: trimmed };
     setMessages((prev) => [...prev, userMsg]);
+    setHistory((prev) => [...prev, trimmed]);
+    setHistoryIndex(-1);
     setInput("");
     setLoading(true);
 
@@ -78,10 +81,41 @@ export default function ChatBox() {
   /**
    * Handle Enter to submit, Shift+Enter for newline.
    */
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    // Ctrl+Enter or Cmd+Enter to submit; plain Enter for newline
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       sendMessage(input);
+      return;
+    }
+
+    // ArrowUp: browse prompt history (only when input is empty or already browsing)
+    if (e.key === "ArrowUp" && history.length > 0) {
+      // Only activate when cursor is at the start (no text above)
+      const textarea = e.currentTarget;
+      if (textarea.selectionStart === 0) {
+        e.preventDefault();
+        const newIndex = historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
+        setHistoryIndex(newIndex);
+        setInput(history[newIndex]);
+      }
+    }
+
+    // ArrowDown: browse forward in history
+    if (e.key === "ArrowDown" && historyIndex !== -1) {
+      const textarea = e.currentTarget;
+      if (textarea.selectionStart === textarea.value.length) {
+        e.preventDefault();
+        if (historyIndex >= history.length - 1) {
+          // Past the end — clear back to empty input
+          setHistoryIndex(-1);
+          setInput("");
+        } else {
+          const newIndex = historyIndex + 1;
+          setHistoryIndex(newIndex);
+          setInput(history[newIndex]);
+        }
+      }
     }
   }
 
@@ -169,14 +203,15 @@ export default function ChatBox() {
       )}
 
       {/* Input area */}
-      <div className="flex gap-2 p-4 border-t">
-        <Input
+      <div className="flex gap-2 p-4 border-t items-end">
+        <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="輸入您的查詢，例如：大安區兩房公寓均價"
+          placeholder="輸入您的查詢，例如：大安區兩房公寓均價（Ctrl+Enter 送出）"
           disabled={loading}
-          className="flex-1"
+          rows={2}
+          className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         />
         <Button onClick={() => sendMessage(input)} disabled={loading || !input.trim()}>
           {loading ? "查詢中" : "送出"}
