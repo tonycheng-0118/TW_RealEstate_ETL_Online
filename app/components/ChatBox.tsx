@@ -10,7 +10,6 @@ import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { QUICK_QUERIES } from "@/app/lib/prompts";
 
 interface Message {
@@ -22,13 +21,11 @@ export default function ChatBox() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   /**
@@ -88,14 +85,15 @@ export default function ChatBox() {
     }
   }
 
-  // Show welcome screen with quick queries when no messages
+  // Show welcome screen when no messages and not loading
   const showWelcome = messages.length === 0 && !loading;
 
   return (
-    <Card className="flex flex-col h-[600px] max-w-2xl mx-auto">
-      {/* Chat messages area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        {showWelcome && (
+    <Card className="flex flex-col h-[600px] max-w-2xl w-full mx-auto">
+      {/* Chat messages area — plain div with overflow-y-auto for reliable scrolling */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {showWelcome ? (
+          /* Welcome screen */
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
             <div>
               <h2 className="text-xl font-semibold mb-2">
@@ -105,8 +103,6 @@ export default function ChatBox() {
                 用自然語言查詢台灣不動產成交資料，例如「大安區兩房公寓均價」
               </p>
             </div>
-
-            {/* Quick query buttons */}
             <div className="flex flex-wrap gap-2 justify-center">
               {QUICK_QUERIES.map((q) => (
                 <Button
@@ -120,40 +116,43 @@ export default function ChatBox() {
               ))}
             </div>
           </div>
-        )}
-
-        {/* Message list */}
-        <div className="space-y-4">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+        ) : (
+          /* Message list */
+          <div className="space-y-4">
+            {messages.map((msg, i) => (
               <div
-                className={`max-w-[85%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                }`}
+                key={i}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                {msg.content}
+                <div
+                  className={`max-w-[85%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  }`}
+                >
+                  {msg.content}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {/* Loading indicator */}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg px-4 py-2 text-sm">
-                <span className="animate-pulse">AI 正在查詢中...</span>
+            {/* Loading indicator */}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-muted rounded-lg px-4 py-2 text-sm">
+                  <span className="animate-pulse">AI 正在查詢中...</span>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+            )}
 
-      {/* Quick queries after error (when there are messages) */}
-      {!showWelcome && !loading && messages.length > 0 && (
+            {/* Invisible anchor for auto-scroll */}
+            <div ref={bottomRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Quick queries (shown when there are messages and not loading) */}
+      {!showWelcome && !loading && (
         <div className="flex flex-wrap gap-1 px-4 pb-2">
           {QUICK_QUERIES.map((q) => (
             <Button
