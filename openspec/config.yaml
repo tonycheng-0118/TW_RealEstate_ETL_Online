@@ -1,20 +1,24 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tech stack: Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui
+  AI: Hugging Face Inference API (Qwen models), two-pass architecture (text-to-SQL + response formatting)
+  Database: Supabase (PostgreSQL) — tables: transactions, rentals, etl_log
+  ETL: Python scripts via GitHub Actions (cron: 每月 2/12/22 號)
+  CI: GitHub Actions (lint + typecheck + build + vitest)
+  Hosting: Vercel Hobby
+  Testing: Vitest (unit tests for pure functions only)
+  Domain: 台灣不動產實價登錄 AI 自然語言查詢系統
+  Language: 使用者介面與 AI 回覆為繁體中文，程式碼與文件為英文
+  Conventions: conventional commits, Co-Authored-By trailer
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include a "Non-goals" section when scope is ambiguous
+  design:
+    - Include alternatives considered for each decision
+    - Note Vercel Hobby limits (60s timeout, 100K invocations/month)
+  tasks:
+    - Break tasks into chunks completable in one session
+    - Include a verification step at the end
