@@ -39,11 +39,11 @@
 
 ## 5. ETL 上雲 — GitHub Actions
 
-- [ ] 5.1 將既有 ETL Python scripts（download.py、transform.py、load.py、run_etl.py、config.py）複製到 `etl/` 目錄
-- [ ] 5.2 修改 config.py，改為從環境變數讀取 Supabase connection string（移除本地 config.json 依賴）
-- [ ] 5.3 建立 `requirements.txt`（pandas、psycopg2-binary、requests、python-dotenv、chardet）
-- [ ] 5.4 建立 `.github/workflows/etl.yml`（cron: 每月 2/12/22 號 UTC 19:00 = UTC+8 03:00，Python 3.12，pip install，執行 run_etl.py --current）
-- [ ] 5.5 在 GitHub repo Settings > Secrets 中設定 SUPABASE_DB_URL
+- [x] 5.1 將既有 ETL Python scripts（download.py、transform.py、load.py、run_etl.py、config.py）複製到 `etl/` 目錄
+- [x] 5.2 修改 config.py，改為從環境變數讀取 Supabase connection string（移除本地 config.json 依賴）
+- [x] 5.3 建立 `requirements.txt`（pandas、psycopg2-binary、requests、python-dotenv、chardet）
+- [x] 5.4 建立 `.github/workflows/etl.yml`（cron: 每月 2/12/22 號 UTC 19:00 = UTC+8 03:00，Python 3.12，pip install，執行 run_etl.py --current）
+- [ ] 5.5 在 GitHub repo Settings > Secrets 中設定 SUPABASE_ETL_DB_URL
 - [ ] 5.6 手動觸發一次 ETL workflow 驗證連線和匯入是否正常
 
 ## 6. Vercel 部署
