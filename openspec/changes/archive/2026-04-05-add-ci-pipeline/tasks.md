@@ -18,4 +18,4 @@
 
 ## 4. 驗證
 
-- [ ] 4.1 Push 並確認 GitHub Actions CI workflow 自動觸發且全部通過
+- [x] 4.1 Push 並確認 GitHub Actions CI workflow 自動觸發且全部通過
