@@ -17,4 +17,4 @@
 
 - [x] 4.1 更新 README TODO（勾選已完成項目）
 - [x] 4.2 本地測試：確認價格單位、面積單位、回覆風格、時間範圍 retry 都正常
-- [ ] 4.3 Commit + push
+- [x] 4.3 Commit + push
