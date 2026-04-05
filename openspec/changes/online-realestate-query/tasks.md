@@ -48,14 +48,14 @@
 
 ## 6. Vercel 部署
 
-- [ ] 6.1 在 Vercel 連結 GitHub repo（Import Project，選擇 Next.js framework）
-- [ ] 6.2 在 Vercel 設定環境變數（SUPABASE_DB_URL、QWEN_API_KEY）
-- [ ] 6.3 確認首次部署成功，前端頁面可正常載入
-- [ ] 6.4 端對端測試：在部署後的網站上輸入查詢，確認完整 AI 查詢流程正常運作
+- [x] 6.1 在 Vercel 連結 GitHub repo（Import Project，選擇 Next.js framework）
+- [x] 6.2 在 Vercel 設定環境變數（SUPABASE_DB_URL、LLM_API_KEY、LLM_API_URL、LLM_MODEL_PASS1/PASS2）
+- [x] 6.3 確認首次部署成功，前端頁面可正常載入
+- [x] 6.4 端對端測試：在部署後的網站上輸入查詢，確認完整 AI 查詢流程正常運作
 
 ## 7. 收尾與測試
 
-- [ ] 7.1 撰寫 README.md（專案說明、架構圖、本地開發指引、環境變數清單）
-- [ ] 7.2 全面測試常用查詢場景（至少 10 種不同的自然語言查詢）
-- [ ] 7.3 測試錯誤處理場景（複雜查詢導致 SQL 錯誤、查無資料、rate limit 超過）
-- [ ] 7.4 測試 SQL Guard（嘗試各種 injection 攻擊模式，確認全部被擋下）
+- [x] 7.1 撰寫 README.md（專案說明、架構圖、本地開發指引、環境變數清單）
+- [x] 7.2 全面測試常用查詢場景（至少 10 種不同的自然語言查詢）
+- [x] 7.3 測試錯誤處理場景（複雜查詢導致 SQL 錯誤、查無資料、rate limit 超過）
+- [x] 7.4 測試 SQL Guard（嘗試各種 injection 攻擊模式，確認全部被擋下）
