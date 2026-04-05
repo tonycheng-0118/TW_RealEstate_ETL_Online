@@ -22,19 +22,39 @@ import { PASS1_SYSTEM_PROMPT, PASS2_SYSTEM_PROMPT } from "@/app/lib/prompts";
 import { devLog } from "@/app/lib/logger";
 
 /**
- * Try to expand a short time INTERVAL in SQL to '1 year'.
- * Returns the modified SQL, or null if no expansion is possible
- * (already >= 1 year, or no INTERVAL found).
+ * Try to widen the time range in SQL for retry on empty results.
+ * Strategy:
+ *   1. Short INTERVAL (day/week/month) → expand to '1 year'
+ *   2. Already '1 year' or longer → remove the entire time condition
+ * Returns modified SQL, or null if no time condition found.
  */
 function expandTimeRange(sql: string): string | null {
-  // Match patterns like INTERVAL '1 month', INTERVAL '3 months', INTERVAL '1 week', etc.
-  // Don't expand if already >= 1 year
-  const match = sql.match(/INTERVAL\s+'(\d+)\s+(day|days|week|weeks|month|months)'/i);
-  if (!match) return null;
-  return sql.replace(
-    /INTERVAL\s+'\d+\s+(?:day|days|week|weeks|month|months)'/i,
-    "INTERVAL '1 year'"
-  );
+  // Case 1: Short interval → expand to 1 year
+  const shortMatch = sql.match(/INTERVAL\s+'(\d+)\s+(day|days|week|weeks|month|months)'/i);
+  if (shortMatch) {
+    return sql.replace(
+      /INTERVAL\s+'\d+\s+(?:day|days|week|weeks|month|months)'/i,
+      "INTERVAL '1 year'"
+    );
+  }
+
+  // Case 2: Already 1 year+ → remove the time WHERE clause entirely
+  // Matches: transaction_date_ad >= CURRENT_DATE - INTERVAL '1 year'
+  // Also handles AND before/after the condition
+  const timeCondition =
+    /\s*AND\s+transaction_date_ad\s*>=\s*CURRENT_DATE\s*-\s*INTERVAL\s+'[^']+'/i;
+  if (timeCondition.test(sql)) {
+    return sql.replace(timeCondition, "");
+  }
+
+  // Also handle case where time condition is the first WHERE clause
+  const timeConditionFirst =
+    /transaction_date_ad\s*>=\s*CURRENT_DATE\s*-\s*INTERVAL\s+'[^']+'\s*AND\s*/i;
+  if (timeConditionFirst.test(sql)) {
+    return sql.replace(timeConditionFirst, "");
+  }
+
+  return null;
 }
 
 // Friendly error message shown when SQL generation or execution fails
