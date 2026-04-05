@@ -85,6 +85,15 @@ export async function POST(request: NextRequest) {
       elapsedMs: Date.now() - pass1Start,
     });
 
+    // --- Step 2.5: Intent check — reject non-related queries ---
+    if (sql.trim().toUpperCase() === "NOT_RELATED") {
+      devLog("NOT_RELATED", { requestId, userMessage: message });
+      return NextResponse.json({
+        reply: "本系統僅提供台灣不動產實價登錄相關查詢。請嘗試詢問房價、租金、成交行情等問題。",
+        metadata: { error: "not_related" },
+      });
+    }
+
     // --- Step 3: SQL Guard ---
     const guardResult = validateSql(sql);
     if (!guardResult.valid) {
