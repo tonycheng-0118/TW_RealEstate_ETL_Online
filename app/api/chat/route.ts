@@ -21,6 +21,22 @@ import { callLLM, extractSql, stripThinking } from "@/app/lib/qwen";
 import { PASS1_SYSTEM_PROMPT, PASS2_SYSTEM_PROMPT } from "@/app/lib/prompts";
 import { devLog } from "@/app/lib/logger";
 
+/**
+ * Try to expand a short time INTERVAL in SQL to '1 year'.
+ * Returns the modified SQL, or null if no expansion is possible
+ * (already >= 1 year, or no INTERVAL found).
+ */
+function expandTimeRange(sql: string): string | null {
+  // Match patterns like INTERVAL '1 month', INTERVAL '3 months', INTERVAL '1 week', etc.
+  // Don't expand if already >= 1 year
+  const match = sql.match(/INTERVAL\s+'(\d+)\s+(day|days|week|weeks|month|months)'/i);
+  if (!match) return null;
+  return sql.replace(
+    /INTERVAL\s+'\d+\s+(?:day|days|week|weeks|month|months)'/i,
+    "INTERVAL '1 year'"
+  );
+}
+
 // Friendly error message shown when SQL generation or execution fails
 const FRIENDLY_ERROR =
   "目前的查詢條件過於複雜，系統無法精確解析。請嘗試簡化您的問題，例如指定明確的行政區、房型或時間範圍。";
@@ -125,26 +141,46 @@ export async function POST(request: NextRequest) {
       elapsedMs: Date.now() - dbStart,
     });
 
-    // --- Step 5: Empty results → check etl_log ---
+    // --- Step 5: Empty results → retry with wider time range, then check etl_log ---
     if (queryResult.rows.length === 0) {
-      let freshness = "";
-      try {
-        const etlStatus = await getLatestEtlStatus();
-        if (etlStatus) {
-          const date = new Date(etlStatus.finishedAt).toLocaleDateString(
-            "zh-TW"
-          );
-          freshness = `（資料最後更新：${date}，季度：${etlStatus.season}）`;
+      // Try expanding time range if SQL has a short INTERVAL (< 1 year)
+      const expandedSql = expandTimeRange(sql);
+      if (expandedSql) {
+        devLog("RETRY_WIDER_TIME", { requestId, originalSql: sql, expandedSql });
+        try {
+          const retryResult = await executeQuery(expandedSql);
+          if (retryResult.rows.length > 0) {
+            // Retry succeeded — use expanded results, continue to Pass 2
+            queryResult = retryResult;
+            devLog("RETRY_OK", { requestId, rowCount: retryResult.rows.length });
+            // Fall through to Pass 2 below
+          }
+        } catch {
+          // Retry query failed — proceed to empty result response
         }
-      } catch {
-        // etl_log query failed — not critical
       }
-      const reply = `查無符合條件的資料${freshness}。您可以嘗試放寬搜尋條件，例如擴大時間範圍或調整行政區。`;
-      devLog("EMPTY_RESULT", { requestId, sql, freshness });
-      return NextResponse.json({
-        reply,
-        metadata: { sql, rowCount: 0 },
-      });
+
+      // Still empty after retry (or no retry attempted)
+      if (queryResult.rows.length === 0) {
+        let freshness = "";
+        try {
+          const etlStatus = await getLatestEtlStatus();
+          if (etlStatus) {
+            const date = new Date(etlStatus.finishedAt).toLocaleDateString(
+              "zh-TW"
+            );
+            freshness = `（資料最後更新：${date}，季度：${etlStatus.season}）`;
+          }
+        } catch {
+          // etl_log query failed — not critical
+        }
+        const reply = `查無符合條件的資料${freshness}。您可以嘗試放寬搜尋條件，例如擴大時間範圍或調整行政區。`;
+        devLog("EMPTY_RESULT", { requestId, sql, freshness });
+        return NextResponse.json({
+          reply,
+          metadata: { sql, rowCount: 0 },
+        });
+      }
     }
 
     // --- Step 6: Pass 2 — format results ---
