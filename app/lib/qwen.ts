@@ -121,3 +121,11 @@ export function extractSql(response: string): string {
 
   return sql;
 }
+
+/**
+ * Strip <think>...</think> blocks from LLM response.
+ * Used for Pass 2 where the model might include reasoning.
+ */
+export function stripThinking(response: string): string {
+  return response.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}

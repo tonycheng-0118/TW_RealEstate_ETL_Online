@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/app/lib/rate-limit";
 import { validateSql } from "@/app/lib/sql-guard";
 import { executeQuery, getLatestEtlStatus } from "@/app/lib/db";
-import { callLLM, extractSql } from "@/app/lib/qwen";
+import { callLLM, extractSql, stripThinking } from "@/app/lib/qwen";
 import { PASS1_SYSTEM_PROMPT, PASS2_SYSTEM_PROMPT } from "@/app/lib/prompts";
 import { devLog } from "@/app/lib/logger";
 
@@ -152,13 +152,14 @@ export async function POST(request: NextRequest) {
     let reply: string;
     const pass2Start = Date.now();
     try {
-      reply = await callLLM("pass2", [
+      const pass2Raw = await callLLM("pass2", [
         { role: "system", content: PASS2_SYSTEM_PROMPT },
         {
           role: "user",
           content: `使用者問題：${message}\n\n查詢結果（共 ${queryResult.rows.length} 筆）：\n${rowsFormatted}`,
         },
       ]);
+      reply = stripThinking(pass2Raw);
       devLog("PASS2_OK", {
         requestId,
         replyPreview: reply.slice(0, 200),
