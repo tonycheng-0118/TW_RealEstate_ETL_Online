@@ -111,9 +111,27 @@ npm run dev
 
 資料來自[內政部實價登錄](https://plvr.land.moi.gov.tw/)，透過 GitHub Actions 自動排程：
 
-- **頻率**：每月 2 號、12 號、22 號（UTC+8 03:00）
+- **自動排程**：每月 2 號、12 號、22 號（UTC+8 03:00），自動抓取最新一期資料
 - **流程**：下載 ZIP → 解壓 CSV → 轉換（編碼 / 日期 / 欄位映射）→ UPSERT 至 Supabase
 - **手動觸發**：GitHub repo → Actions → ETL → Run workflow
+
+### 手動觸發模式
+
+| Mode | 說明 | 參數 |
+|------|------|------|
+| `current` | 抓最新一期資料（預設） | city |
+| `season` | 抓指定單一季度 | season, city |
+| `range` | 抓指定區間多季（批次匯入歷史資料） | from_season, to_season, city |
+| `delete` | 刪除指定季度的資料 | season, city |
+
+**範例：**
+- 灌近 2 年歷史資料：mode=`range`, from_season=`113S1`, to_season=`114S4`, city=`all`
+- 只灌台北市某一季：mode=`season`, season=`114S2`, city=`A`
+- 刪除某季資料：mode=`delete`, season=`112S1`, city=`all`
+
+**季度格式**：`{民國年}S{季度}`，例如 `113S1` = 2024 Q1、`114S4` = 2025 Q4
+
+**城市代碼**：`A`=台北市, `B`=台中市, `D`=台南市, `E`=高雄市, `F`=新北市, `H`=桃園市 ... 或 `all`=全部
 
 ETL 腳本沿用自 [TW_RealEstate_ETL](https://github.com/tonycheng-0118/TW_RealEstate_ETL)。
 
