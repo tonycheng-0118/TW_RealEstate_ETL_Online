@@ -115,60 +115,81 @@ npm run dev
 - **流程**：下載 ZIP → 解壓 CSV → 轉換（編碼 / 日期 / 欄位映射）→ UPSERT 至 Supabase
 - **手動觸發**：GitHub repo → Actions → ETL → Run workflow
 
-### 手動觸發模式
+### 手動觸��模式
 
-| Mode | 說明 | 參數 |
-|------|------|------|
-| `current` | 抓最新一期資料（預設） | city |
-| `season` | 抓指定單一季度 | season, city |
-| `range` | 抓指定區間多季（批次匯入歷史資料） | from_season, to_season, city |
-| `delete` | 刪除指定季度的資料 | season, city |
+| Mode | 說明 |
+|------|------|
+| `import` | 匯入資料（預設） |
+| `delete` | 刪除資料 |
 
-**範例：**
-- 灌近 2 年歷史資料：mode=`range`, from_season=`113S1`, to_season=`114S4`, city=`all`
-- 只灌台北市某一季：mode=`season`, season=`114S2`, city=`A`
-- 刪除某季資料：mode=`delete`, season=`112S1`, city=`all`
+**參數：**
 
-**season 參數**：季度格式為 `{民國年}S{季度}`，例如 `113S1` = 2024 Q1、`114S4` = 2025 Q4。也接受特殊值 `current`，代表自動排程匯入的最新一期資料（`source_season = 'current'`）。
+| 參數 | 說明 | 預設值 |
+|------|------|--------|
+| `start_season` | 起始季度（如 `113S1`） | 留空 = 當前季度 |
+| `end_season` | 結束季度（如 `114S4`） | 留空 = 從 start 到當前季��� |
+| `city` | 城市代碼（如 `A,F,H`） | `all` |
+
+**參數行為：**
+
+| start_season | end_season | 實際行為 |
+|-------------|-----------|---------|
+| 留空 | 留空 | 當前季度（單季） |
+| `113S1` | `113S1` | 113S1 單季 |
+| `113S1` | `114S4` | 113S1 ~ 114S4 區間 |
+| `113S1` | 留空 | 113S1 ~ 當前季度（含所有後續季度） |
+| `113S1` | `current` | 同上 |
+
+**季度格式**：`{民國年}S{季度}`，例如 `113S1` = 2024 Q1、`114S4` = 2025 Q4
+
+> 注意：`source_season` 永遠使用實際季度號（如 `115S2`），不再使用 `current` 字串。
+
+**驗證規則：**
+- 無效季度格式 → 報錯
+- end < start → 報錯
+- 季度超過當前季度 → 報錯
+- start 為空（=current）但 end 為特定季度 → 報錯（current 不能當區間起點）
 
 **城市代碼**：
 
 | 代碼 | 城市 | 代碼 | 城市 | 代碼 | 城市 |
 |------|------|------|------|------|------|
-| `A` | 臺北市 | `B` | 臺中市 | `C` | 基隆市 |
+| `A` | ��北市 | `B` | 臺中市 | `C` | 基隆市 |
 | `D` | 臺南市 | `E` | 高雄市 | `F` | 新北市 |
 | `G` | 宜蘭縣 | `H` | 桃園市 | `I` | 嘉義市 |
 | `J` | 新竹縣 | `K` | 苗栗縣 | `L` | 臺東縣 |
 | `M` | 花蓮縣 | `N` | 南投縣 | `O` | 新竹市 |
 | `P` | 雲林縣 | `Q` | 嘉義縣 | `R` | 屏東縣 |
 | `S` | 彰化縣 | `T` | 臺東縣 | `U` | 花蓮縣 |
-| `V` | 澎湖縣 | `W` | 金門縣 | `X` | 連江縣 |
+| `V` | 澎湖縣 | `W` | 金門縣 | `X` | ��江縣 |
 
 使用 `all` 代表全部城市。
 
 ### 常見操作
 
-#### 初次灌入歷史資料（近 2 年）
+#### 匯入當前季度資料（自動排程也做這件事）
 
-1. GitHub repo → **Actions** → **ETL - Real Estate Data Import** → **Run workflow**
-2. mode: `range`, from_season: `113S1`, to_season: `114S4`, city: `all`
-3. 等待完成（約 30-60 分鐘）
+- mode: `import`，其餘留空
 
-#### 刪除再重灌（例如修復資料錯誤後）
+#### 匯入歷史資料（近 2 年）
 
-1. 先刪除舊資料：
-   - mode: `delete`, season: `current`, city: `all`
-2. 再重新灌入：
-   - mode: `current`, city: `all`
+- mode: `import`, start_season: `113S1`, end_season: 留空（= 到當前季度）
 
-#### 補灌特定城市的特定季度
+#### 匯入單一季度
 
-1. mode: `season`, season: `114S2`, city: `A`（只灌台北市 2025 Q2）
+- mode: `import`, start_season: `114S2`, end_season: `114S2`, city: `A`（只灌台北市）
 
-#### 批次刪除特定季度
+#### 刪除當前季度資料（重灌前先清除）
 
-1. mode: `delete`, season: `112S1`, city: `all`（刪掉 2023 Q1 全部資料）
-2. mode: `delete`, season: `113S2`, city: `A`（只刪台北市 2024 Q2 資料）
+- mode: `delete`，其餘留空
+
+#### 刪除特定區間資料
+
+- mode: `delete`, start_season: `112S1`, end_season: `113S4`（刪掉 2 年的資料）
+
+#### 刪除特定城市的資料
+
+- mode: `delete`, start_season: `113S2`, end_season: `113S2`, city: `A`（只刪台北市 2024 Q2）
 
 ETL 腳本沿用自 [TW_RealEstate_ETL](https://github.com/tonycheng-0118/TW_RealEstate_ETL)。
 

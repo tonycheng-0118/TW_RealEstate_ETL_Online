@@ -23,6 +23,7 @@ sys.path.insert(0, str(_script_dir))
 
 import config  # noqa: E402
 from load import get_connection  # noqa: E402
+from season_utils import resolve_params, season_range  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -88,52 +89,88 @@ def delete_records(season: str, city_codes: list[str] | None, conn) -> dict:
     return deleted
 
 
+def _delete_single_season(season: str, city_codes: list[str] | None, conn) -> None:
+    """Delete records for a single season. Logs preview and result."""
+    city_label = ",".join(city_codes) if city_codes else "ALL"
+    logger.info("=== Deleting season=%s city=%s ===", season, city_label)
+
+    counts = count_records(season, city_codes, conn)
+    logger.info("Records to delete:")
+    for table, count in counts.items():
+        logger.info("  %s: %d rows", table, count)
+
+    total = sum(counts.values())
+    if total == 0:
+        logger.info("No records found. Skipping.")
+        return
+
+    deleted = delete_records(season, city_codes, conn)
+    logger.info("Deleted:")
+    for table, count in deleted.items():
+        logger.info("  %s: %d rows", table, count)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Delete real estate data for a specific season"
+        description="Delete real estate data for specific season(s)"
     )
-    parser.add_argument("--season", required=True, help="Season to delete, e.g. 112S1")
+    parser.add_argument("--start", help="Start season, e.g. 113S1. Empty = current.")
+    parser.add_argument("--end", help="End season, e.g. 114S4. Empty = start through current.")
+    # Legacy flag (still supported)
+    parser.add_argument("--season", help="(Legacy) Single season to delete")
     parser.add_argument(
         "--city",
         help="City codes to delete (comma-separated, e.g. A,F,H). Omit for all cities.",
     )
     args = parser.parse_args()
 
-    # Setup logging
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
 
+    # Resolve season parameters
+    if args.start or args.end:
+        try:
+            start, end, _ = resolve_params(args.start, args.end)
+        except ValueError as e:
+            parser.error(str(e))
+    elif args.season:
+        try:
+            start, end, _ = resolve_params(args.season, args.season)
+        except ValueError as e:
+            parser.error(str(e))
+    else:
+        # No args = current season
+        start, end, _ = resolve_params(None, None)
+
     city_codes = None
     if args.city:
         city_codes = [c.strip().upper() for c in args.city.split(",")]
 
-    city_label = ",".join(city_codes) if city_codes else "ALL"
-    logger.info("Delete target: season=%s city=%s", args.season, city_label)
+    # Build season list
+    if start == end:
+        seasons = [start]
+    else:
+        seasons = season_range(start, end)
+
+    logger.info("Delete target: %d season(s) [%s ~ %s], city=%s",
+                len(seasons), start, end,
+                ",".join(city_codes) if city_codes else "ALL")
 
     conn = get_connection()
     try:
-        # Preview: show how many records will be deleted
-        counts = count_records(args.season, city_codes, conn)
-        logger.info("Records to delete:")
-        for table, count in counts.items():
-            logger.info("  %s: %d rows", table, count)
-
-        total = sum(counts.values())
-        if total == 0:
-            logger.info("No records found. Nothing to delete.")
-            return
-
-        # Execute delete
-        deleted = delete_records(args.season, city_codes, conn)
-        logger.info("Deleted:")
-        for table, count in deleted.items():
-            logger.info("  %s: %d rows", table, count)
-
-        logger.info("Delete complete for season=%s city=%s", args.season, city_label)
+        for season in seasons:
+            try:
+                _delete_single_season(season, city_codes, conn)
+            except Exception as e:
+                # Partial delete accepted — log error, continue to next season
+                logger.error("Failed to delete season %s: %s", season, e, exc_info=True)
+                conn.rollback()
     finally:
         conn.close()
+
+    logger.info("Delete complete.")
 
 
 if __name__ == "__main__":

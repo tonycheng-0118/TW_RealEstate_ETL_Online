@@ -25,7 +25,8 @@ sys.path.insert(0, str(_script_dir))
 
 import config  # noqa: E402
 
-from download import download_season, download_current, parse_season_range  # noqa: E402
+from download import download_season, download_current  # noqa: E402
+from season_utils import get_current_season, resolve_params, season_range  # noqa: E402
 from transform import process_season, process_current  # noqa: E402
 from load import (  # noqa: E402
     get_connection,
@@ -93,15 +94,16 @@ def run_etl(seasons: list[str], is_current: bool = False) -> dict:
 
     try:
         if is_current:
-            logger.info("=== Processing current period ===")
+            current_season = get_current_season()
+            logger.info("=== Processing current period (tagged as %s) ===", current_season)
             try:
                 download_current()
                 dataframes = process_current()
-                summary = _load_dataframes(dataframes, "current", conn)
-                overall["current"] = summary
+                summary = _load_dataframes(dataframes, current_season, conn)
+                overall[current_season] = summary
             except Exception as e:
                 logger.error("Failed to process current period: %s", e, exc_info=True)
-                overall["current"] = {"error": str(e)}
+                overall[current_season] = {"error": str(e)}
         else:
             for i, season in enumerate(seasons):
                 logger.info("=== Processing season %s (%d/%d) ===", season, i + 1, len(seasons))
@@ -128,14 +130,16 @@ def main():
     parser = argparse.ArgumentParser(
         description="TW RealEstate ETL (Cloud) — Download, transform, load"
     )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--season", help="Single season, e.g. 114S1")
-    group.add_argument("--current", action="store_true", help="Process current period")
-    parser.add_argument("--from", dest="from_s", help="Range start, e.g. 112S1")
-    parser.add_argument("--to", dest="to_s", help="Range end, e.g. 114S1")
+    parser.add_argument("--start", help="Start season, e.g. 113S1. Empty = current.")
+    parser.add_argument("--end", help="End season, e.g. 114S4. Empty = start through current.")
+    # Legacy flags (still supported for backward compat)
+    parser.add_argument("--season", help="(Legacy) Single season, e.g. 114S1")
+    parser.add_argument("--current", action="store_true", help="(Legacy) Process current period")
+    parser.add_argument("--from", dest="from_s", help="(Legacy) Range start")
+    parser.add_argument("--to", dest="to_s", help="(Legacy) Range end")
     parser.add_argument(
         "--city",
-        help="Override city codes. Comma-separated, e.g. A,F,H. Use 'all' for every city.",
+        help="City codes. Comma-separated, e.g. A,F,H. Use 'all' for every city.",
     )
     args = parser.parse_args()
 
@@ -152,20 +156,42 @@ def main():
 
     logger.info("ETL started at %s", datetime.now().isoformat())
 
-    if not (args.season or args.current or (args.from_s and args.to_s)):
-        parser.error("Specify --season, --from/--to, or --current")
-
-    if bool(args.from_s) != bool(args.to_s):
-        parser.error("--from and --to must be used together")
-
-    # Run ETL
-    if args.current:
-        overall = run_etl([], is_current=True)
+    # Resolve season parameters (new --start/--end or legacy flags)
+    if args.start or args.end:
+        # New style: --start / --end
+        try:
+            start, end, is_current = resolve_params(args.start, args.end)
+        except ValueError as e:
+            parser.error(str(e))
+    elif args.current:
+        start, end, is_current = resolve_params(None, None)
     elif args.from_s and args.to_s:
-        seasons = parse_season_range(args.from_s, args.to_s)
-        overall = run_etl(seasons)
+        start, end, is_current = resolve_params(args.from_s, args.to_s)
+    elif args.season:
+        start, end, is_current = resolve_params(args.season, args.season)
     else:
-        overall = run_etl([args.season])
+        # No args = current
+        start, end, is_current = resolve_params(None, None)
+
+    logger.info("Resolved: start=%s end=%s is_current=%s", start, end, is_current)
+
+    # Build season list and run
+    if is_current:
+        overall = run_etl([], is_current=True)
+    elif start == end:
+        overall = run_etl([start])
+    else:
+        seasons = season_range(start, end)
+        # If end == current season, also download current period for latest data
+        current = get_current_season()
+        if end == current:
+            # Run historical seasons first, then current
+            historical = [s for s in seasons if s != current]
+            overall = run_etl(historical) if historical else {}
+            current_result = run_etl([], is_current=True)
+            overall.update(current_result)
+        else:
+            overall = run_etl(seasons)
 
     # Print summary
     logger.info("=== ETL Summary ===")
