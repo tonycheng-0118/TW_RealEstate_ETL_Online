@@ -18,6 +18,14 @@ The system SHALL execute the ETL pipeline automatically via GitHub Actions on a 
 ### Requirement: ETL pipeline stages
 The ETL pipeline SHALL execute 3 stages in order: Download (fetch ZIP from Ministry of Interior), Transform (decode encoding, map columns, convert ROC dates), and Load (upsert into Supabase PostgreSQL via psycopg2).
 
+#### Scenario: Rental CSV column mapping
+- **WHEN** the Transform stage processes a rental CSV (*_c.csv)
+- **THEN** the column mapping correctly handles rental-specific headers (租賃年月日, 租賃筆棟數, 租賃層次, 土地面積平方公尺, 建物總面積平方公尺, 總額元, 有無電梯) with fallback to older format headers
+
+#### Scenario: ROC year validation
+- **WHEN** the Transform stage converts a ROC date with year < 90 or > 120
+- **THEN** the date is set to NULL instead of producing an incorrect AD date
+
 #### Scenario: Full pipeline execution
 - **WHEN** the ETL workflow runs for season "114S1"
 - **THEN** ZIP files are downloaded, CSVs are extracted and transformed, and records are upserted into transactions and rentals tables using serial_no as the conflict key
