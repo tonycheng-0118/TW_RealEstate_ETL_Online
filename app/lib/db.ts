@@ -49,19 +49,21 @@ export async function executeQuery(sql: string): Promise<QueryResult> {
  * about data freshness.
  */
 /**
- * Get the date range of transaction data in the database.
- * Used to inform users about available data when queries return empty.
+ * Get the season range of transaction data in the database.
+ * Uses source_season (e.g. "107S2") instead of transaction dates,
+ * because registration dates can differ significantly from actual
+ * transaction dates — season range is more accurate.
  */
-export async function getDataDateRange(): Promise<{
+export async function getDataSeasonRange(): Promise<{
   earliest: string;
   latest: string;
 } | null> {
   const result = await executeQuery(
     `SELECT
-       MIN(transaction_date_ad) as earliest,
-       MAX(transaction_date_ad) as latest
+       MIN(source_season) as earliest,
+       MAX(source_season) as latest
      FROM transactions
-     WHERE transaction_date_ad IS NOT NULL`
+     WHERE source_season IS NOT NULL`
   );
   if (result.rows.length === 0 || !result.rows[0].earliest) return null;
   return {

@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/app/lib/rate-limit";
 import { validateSql } from "@/app/lib/sql-guard";
-import { executeQuery, getDataDateRange } from "@/app/lib/db";
+import { executeQuery, getDataSeasonRange } from "@/app/lib/db";
 import { callLLM, extractSql, stripThinking } from "@/app/lib/qwen";
 import { PASS1_SYSTEM_PROMPT, PASS2_SYSTEM_PROMPT } from "@/app/lib/prompts";
 import { devLog } from "@/app/lib/logger";
@@ -184,13 +184,17 @@ export async function POST(request: NextRequest) {
       if (queryResult.rows.length === 0) {
         let dateRangeHint = "";
         try {
-          const range = await getDataDateRange();
+          const range = await getDataSeasonRange();
           if (range) {
-            const fmt = (d: string) => new Date(d).toLocaleDateString("zh-TW");
-            dateRangeHint = `目前資料庫收錄 ${fmt(range.earliest)} ~ ${fmt(range.latest)} 的成交紀錄，`;
+            // Format season like "107S2" → "民國107年第2季"
+            const fmtSeason = (s: string) => {
+              const m = s.match(/^(\d+)S(\d)$/);
+              return m ? `民國${m[1]}年第${m[2]}季` : s;
+            };
+            dateRangeHint = `目前資料庫收錄 ${fmtSeason(range.earliest)} ~ ${fmtSeason(range.latest)} 的成交紀錄，`;
           }
         } catch {
-          // date range query failed — not critical
+          // season range query failed — not critical
         }
         const reply = `查無符合條件的資料。${dateRangeHint}請調整查詢的時間範圍或條件。`;
         devLog("EMPTY_RESULT", { requestId, sql, dateRangeHint });

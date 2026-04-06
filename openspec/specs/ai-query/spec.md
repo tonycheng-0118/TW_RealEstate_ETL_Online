@@ -54,15 +54,15 @@ When the database returns an error or the AI-generated SQL is invalid, the syste
 - **THEN** the system responds with "目前的查詢條件過於複雜，系統無法精確解析。請嘗試簡化您的問題。" and displays quick-query buttons
 
 ### Requirement: Error handling — empty results
-When the query returns zero rows and the SQL contains a time condition, the system SHALL automatically retry with a wider time range (up to 1 retry). Only after retry still returns empty SHALL the system query the actual data date range and inform the user.
+When the query returns zero rows and the SQL contains a time condition, the system SHALL automatically retry with a wider time range (up to 1 retry). Only after retry still returns empty SHALL the system query the actual data season range and inform the user.
 
 #### Scenario: Query returns no data
 - **WHEN** a valid SQL query returns zero rows (after retry)
-- **THEN** the system queries MIN/MAX transaction_date_ad from transactions and responds with "查無符合條件的資料。目前資料庫收錄 {earliest} ~ {latest} 的成交紀錄，請調整查詢的時間範圍或條件。"
+- **THEN** the system queries MIN/MAX source_season from transactions and responds with "查無符合條件的資料。目前資料庫收錄 民國{year}年第{quarter}季 ~ 民國{year}年第{quarter}季 的成交紀錄，請調整查詢的時間範圍或條件。"
 
-#### Scenario: Empty result shows DB date range
+#### Scenario: Empty result shows DB season range
 - **WHEN** a query returns zero rows (after retry)
-- **THEN** the response includes the actual date range of data in the database
+- **THEN** the response includes the actual season range (source_season) of data in the database, formatted as 民國年第N季
 
 #### Scenario: Auto-expand time range on empty result
 - **WHEN** a query with INTERVAL '1 month' returns zero rows
