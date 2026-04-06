@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     const sql = extractSql(sqlRaw);
     devLog("PASS1_OK", {
       requestId,
-      rawResponse: sqlRaw.slice(0, 500),
+      rawResponse: sqlRaw,
       extractedSql: sql,
       elapsedMs: Date.now() - pass1Start,
     });
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     devLog("DB_OK", {
       requestId,
       rowCount: queryResult.rows.length,
-      sampleRows: queryResult.rows.slice(0, 3),
+      rows: queryResult.rows,
       elapsedMs: Date.now() - dbStart,
     });
 
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
       reply = stripThinking(pass2Raw);
       devLog("PASS2_OK", {
         requestId,
-        replyPreview: reply.slice(0, 200),
+        reply: reply,
         elapsedMs: Date.now() - pass2Start,
       });
     } catch (e) {
