@@ -87,11 +87,28 @@ POST /api/chat { "message": "..." }
 
 既有 ETL scripts 來自 [TW_RealEstate_ETL](https://github.com/tonycheng-0118/TW_RealEstate_ETL)，透過 GitHub Actions 自動排程執行。手動觸發：GitHub repo → Actions → ETL workflow → Run workflow。
 
-## OpenSpec
+## OpenSpec（必須遵守）
 
-設計文件與規格在 `openspec/` 目錄：
-- 目前 change: `online-realestate-query`
-- 執行 `openspec status` 查看進度
+**本 repo 的所有功能新增、修改、修復都必須嚴格遵守 OpenSpec 流程。不允許跳過 OpenSpec 直接寫 code。**
+
+### 流程
+
+1. **探索**（可選）：`/openspec-explore` — 不確定要做什麼時先聊
+2. **提案**：`/openspec-propose` 或 `/openspec-new-change` — 建立 change + artifacts（proposal → specs → design → tasks）
+3. **實作**：`/openspec-apply-change` — 按 tasks 逐一實作，每完成一項勾選
+4. **驗證**：`/openspec-verify-change` — 對比 specs/design 確認實作正確
+5. **同步**：`/openspec-sync-specs` — 將 delta specs 合併到 main specs
+6. **歸檔**：`/openspec-archive-change` — 歸檔完成的 change
+
+### 規則
+
+- **禁止**未經 OpenSpec 流程直接修改功能性程式碼
+- 純文件修改（README、CLAUDE.md）、git 設定、環境變數等非功能性變更可以不走 OpenSpec
+- 每個 change 的 artifacts 存放在 `openspec/changes/<name>/`
+- 歸檔後的 change 在 `openspec/changes/archive/`
+- Main specs 在 `openspec/specs/`，代表系統目前的規格
+- 執行 `openspec status` 查看目前進度
+- 執行 `openspec list` 查看所有 active changes
 
 ## 相關資源
 
