@@ -48,6 +48,28 @@ export async function executeQuery(sql: string): Promise<QueryResult> {
  * Used when a query returns empty results to inform the user
  * about data freshness.
  */
+/**
+ * Get the date range of transaction data in the database.
+ * Used to inform users about available data when queries return empty.
+ */
+export async function getDataDateRange(): Promise<{
+  earliest: string;
+  latest: string;
+} | null> {
+  const result = await executeQuery(
+    `SELECT
+       MIN(transaction_date_ad) as earliest,
+       MAX(transaction_date_ad) as latest
+     FROM transactions
+     WHERE transaction_date_ad IS NOT NULL`
+  );
+  if (result.rows.length === 0 || !result.rows[0].earliest) return null;
+  return {
+    earliest: result.rows[0].earliest,
+    latest: result.rows[0].latest,
+  };
+}
+
 export async function getLatestEtlStatus(): Promise<{
   season: string;
   finishedAt: string;

@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/app/lib/rate-limit";
 import { validateSql } from "@/app/lib/sql-guard";
-import { executeQuery, getLatestEtlStatus } from "@/app/lib/db";
+import { executeQuery, getDataDateRange } from "@/app/lib/db";
 import { callLLM, extractSql, stripThinking } from "@/app/lib/qwen";
 import { PASS1_SYSTEM_PROMPT, PASS2_SYSTEM_PROMPT } from "@/app/lib/prompts";
 import { devLog } from "@/app/lib/logger";
@@ -182,20 +182,18 @@ export async function POST(request: NextRequest) {
 
       // Still empty after retry (or no retry attempted)
       if (queryResult.rows.length === 0) {
-        let freshness = "";
+        let dateRangeHint = "";
         try {
-          const etlStatus = await getLatestEtlStatus();
-          if (etlStatus) {
-            const date = new Date(etlStatus.finishedAt).toLocaleDateString(
-              "zh-TW"
-            );
-            freshness = `（資料最後更新：${date}，季度：${etlStatus.season}）`;
+          const range = await getDataDateRange();
+          if (range) {
+            const fmt = (d: string) => new Date(d).toLocaleDateString("zh-TW");
+            dateRangeHint = `目前資料庫收錄 ${fmt(range.earliest)} ~ ${fmt(range.latest)} 的成交紀錄，`;
           }
         } catch {
-          // etl_log query failed — not critical
+          // date range query failed — not critical
         }
-        const reply = `查無符合條件的資料${freshness}。您可以嘗試放寬搜尋條件，例如擴大時間範圍或調整行政區。`;
-        devLog("EMPTY_RESULT", { requestId, sql, freshness });
+        const reply = `查無符合條件的資料。${dateRangeHint}請調整查詢的時間範圍或條件。`;
+        devLog("EMPTY_RESULT", { requestId, sql, dateRangeHint });
         return NextResponse.json({
           reply,
           metadata: { sql, rowCount: 0 },
