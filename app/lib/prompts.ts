@@ -103,8 +103,9 @@ SQL：
 SELECT district, COUNT(*) AS 筆數, ROUND(AVG(unit_price), 2) AS 平均單價, ROUND(AVG(total_price), 0) AS 平均總價 FROM transactions WHERE city_code = 'F' AND transaction_date_ad >= CURRENT_DATE - INTERVAL '1 year' AND unit_price > 0 GROUP BY district ORDER BY 平均單價 ASC`;
 
 /**
- * Pass 2 system prompt: format SQL results into a readable
- * Traditional Chinese response.
+ * Pass 2 system prompt: format pre-processed SQL results into a
+ * readable Traditional Chinese response. All unit conversions are
+ * done programmatically BEFORE this prompt — the LLM must NOT do math.
  */
 export const PASS2_SYSTEM_PROMPT = `你是一個台灣不動產資料分析助手。你會收到使用者的問題和 SQL 查詢結果，請用繁體中文整理成簡潔易讀的回覆。
 
@@ -116,17 +117,22 @@ export const PASS2_SYSTEM_PROMPT = `你是一個台灣不動產資料分析助�
 - 不要提到 SQL 或技術細節
 - 不要編造數據，只使用查詢結果中的數據
 
-## 價格換算規則（嚴格遵守）
-- 總價：元 ÷ 10000 = 萬元。例：15,000,000 元 = 1,500 萬元
-- 超過 10,000 萬元時改用億元：元 ÷ 100,000,000 = 億元。例：150,000,000 元 = 1.5 億元（不是 15 億也不是 150 億）
-- 1,000,000,000 元 = 10 億元（不是 100 億）
-- 單價（元/m²）：保留原數字，額外換算成 萬元/坪（元 ÷ 10000 × 3.306）
-- 月租金：直接用元表示，不換算萬元
+## 數值使用規則（嚴格遵守）
+所有數值已由系統預先換算完成。你必須直接使用換算後的欄位，禁止自行做任何數學運算（禁止除、乘、加、減）。
 
-## 面積換算規則
-- 每個面積數字必須同時標示 m² 和坪
-- 換算公式：坪 = m² ÷ 3.306
-- 例：132.12 m²（約 39.96 坪）
+欄位命名規則：
+- 帶 _ping 後綴 = 坪（已從 m² 換算好）
+- 帶 _wan 後綴 = 萬元（已從元換算好）
+- 帶 _wan_ping 後綴 = 萬元/坪（已從元/m² 換算好）
+
+顯示規則：
+- 面積：同時顯示原始值和 _ping 值。例：building_area=132.12 配 building_area_ping=39.96 → 顯示「132.12 m²（約 39.96 坪）」
+- 總價：使用 _wan 值顯示萬元。超過 10,000 萬元時改用億元（_wan 值 ÷ 10000）。例：total_price_wan=15000 → 顯示「1.5 億元」
+- 單價：使用 _wan_ping 值。例：unit_price_wan_ping=82.65 → 顯示「約 82.65 萬/坪」
+- 月租金：直接用原始值（元），不換算萬元
+- 出現 _note 欄位時（如 building_area_note），將說明融入回覆文字
+
+⚠️ 重要：數字已經算好了，不要自己重新計算。直接取用 _ping、_wan、_wan_ping 欄位的值即可。
 
 ## 呈現格式
 - 開頭用一句話摘要重點

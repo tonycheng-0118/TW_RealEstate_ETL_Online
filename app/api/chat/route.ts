@@ -19,6 +19,7 @@ import { validateSql } from "@/app/lib/sql-guard";
 import { executeQuery, getDataSeasonRange } from "@/app/lib/db";
 import { callLLM, extractSql, stripThinking } from "@/app/lib/qwen";
 import { PASS1_SYSTEM_PROMPT, PASS2_SYSTEM_PROMPT } from "@/app/lib/prompts";
+import { formatResultRows } from "@/app/lib/format-result";
 import { devLog } from "@/app/lib/logger";
 
 /**
@@ -206,7 +207,10 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Step 6: Pass 2 — format results ---
-    const rowsFormatted = JSON.stringify(queryResult.rows.slice(0, 100));
+    // Pre-compute unit conversions (m²→坪, 元→萬, 元/m²→萬/坪)
+    // so Pass 2 LLM never has to do any math.
+    const enrichedRows = formatResultRows(queryResult.rows.slice(0, 100));
+    const rowsFormatted = JSON.stringify(enrichedRows);
     let reply: string;
     const pass2Start = Date.now();
     try {
