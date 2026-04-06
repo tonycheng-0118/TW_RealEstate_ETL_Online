@@ -131,7 +131,44 @@ npm run dev
 
 **季度格式**：`{民國年}S{季度}`，例如 `113S1` = 2024 Q1、`114S4` = 2025 Q4
 
-**城市代碼**：`A`=台北市, `B`=台中市, `D`=台南市, `E`=高雄市, `F`=新北市, `H`=桃園市 ... 或 `all`=全部
+**城市代碼**：
+
+| 代碼 | 城市 | 代碼 | 城市 | 代碼 | 城市 |
+|------|------|------|------|------|------|
+| `A` | 臺北市 | `B` | 臺中市 | `C` | 基隆市 |
+| `D` | 臺南市 | `E` | 高雄市 | `F` | 新北市 |
+| `G` | 宜蘭縣 | `H` | 桃園市 | `I` | 嘉義市 |
+| `J` | 新竹縣 | `K` | 苗栗縣 | `L` | 臺東縣 |
+| `M` | 花蓮縣 | `N` | 南投縣 | `O` | 新竹市 |
+| `P` | 雲林縣 | `Q` | 嘉義縣 | `R` | 屏東縣 |
+| `S` | 彰化縣 | `T` | 臺東縣 | `U` | 花蓮縣 |
+| `V` | 澎湖縣 | `W` | 金門縣 | `X` | ���江縣 |
+
+使用 `all` 代表全部城市。
+
+### 常見操作
+
+#### 初次灌入歷史資料（近 2 年）
+
+1. GitHub repo → **Actions** → **ETL - Real Estate Data Import** → **Run workflow**
+2. mode: `range`, from_season: `113S1`, to_season: `114S4`, city: `all`
+3. 等待完成（約 30-60 分鐘）
+
+#### 刪除再重��（例如修復資料錯誤後）
+
+1. 先刪除舊資料：
+   - mode: `delete`, season: `current`, city: `all`
+2. 再重新灌入：
+   - mode: `current`, city: `all`
+
+#### 補灌特定城市的特定季度
+
+1. mode: `season`, season: `114S2`, city: `A`（只灌台北市 2025 Q2）
+
+#### 批次刪除特定季度
+
+1. mode: `delete`, season: `112S1`, city: `all`（刪掉 2023 Q1 全部資料）
+2. mode: `delete`, season: `113S2`, city: `A`（只刪台北市 2024 Q2 資料）
 
 ETL 腳本沿用自 [TW_RealEstate_ETL](https://github.com/tonycheng-0118/TW_RealEstate_ETL)。
 
