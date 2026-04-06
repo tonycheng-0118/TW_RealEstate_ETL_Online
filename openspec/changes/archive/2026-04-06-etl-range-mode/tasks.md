@@ -12,5 +12,5 @@
 
 ## 3. 驗證
 
-- [ ] 3.1 本地測試 delete.py：確認能正確刪除指定季度資料（可用 Supabase SQL Editor 驗證）
-- [ ] 3.2 Commit + push，手動觸發 range mode（from=113S1, to=113S2, city=A）驗證 workflow 正常
+- [x] 3.1 本地測試 delete.py：確認能正確刪除指定季度資料（可用 Supabase SQL Editor 驗證）
+- [x] 3.2 Commit + push，手動觸發 range mode（from=113S1, to=113S2, city=A）驗證 workflow 正常
