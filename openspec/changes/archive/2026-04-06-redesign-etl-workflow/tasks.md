@@ -21,4 +21,4 @@
 
 - [x] 5.1 更新 README 的 ETL 操作說明
 - [x] 5.2 本地驗證 + commit + push
-- [ ] 5.3 手動觸發 workflow 驗證 import 和 delete 正常
+- [x] 5.3 手動觸發 workflow 驗證 import 和 delete 正常

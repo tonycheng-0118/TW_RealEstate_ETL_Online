@@ -5,4 +5,4 @@
 
 ## 2. 收尾
 
-- [ ] 2.1 本地驗證 + commit + push
+- [x] 2.1 本地驗證 + commit + push
