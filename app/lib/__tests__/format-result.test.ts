@@ -46,6 +46,11 @@ describe("formatResultRows", () => {
       const [row] = formatResultRows([{ "平均房價": 52800000 }]);
       expect(row["平均房價_wan"]).toBe(5280.0);
     });
+
+    it("converts Chinese alias with 金額", () => {
+      const [row] = formatResultRows([{ "總成交金額": 130328880 }]);
+      expect(row["總成交金額_wan"]).toBe(13032.89);
+    });
   });
 
   // --- Unit price conversion (元/m² → 萬元/坪) ---

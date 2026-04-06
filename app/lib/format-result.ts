@@ -55,7 +55,7 @@ function isAreaColumn(key: string): boolean {
 /** Price columns (元) — e.g. total_price, parking_price, 最高總價. */
 function isPriceColumn(key: string): boolean {
   if (key === "total_price" || key === "parking_price") return true;
-  return /總價|房價/.test(key);
+  return /總價|房價|金額/.test(key);
 }
 
 // ---------------------------------------------------------------------------
